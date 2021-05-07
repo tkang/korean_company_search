@@ -607,3 +607,118 @@ $ amplify push
 ```
 
 > 이전보다 시간이 오래걸립니다. 모델에 처음으로 searchable 을 추가하고 `amplify push` 를 하면 ElasticSearch 를 셋업하게 됩니다. **Amazon ElasticSearch 의 비용이 발생하게 됩니다.** 따라서 본 데모가 끝나면 프로젝트를 삭제하는게 필요합니다.
+
+### Backfill Elasticsearch index from DynamoDB table
+
+DynamoDB 에 데이터를 넣은후 검색기능을 추가했기때문에 아직 Elasticsearch 에는 데이터 인덱싱이 되지 않은 상황입니다. 따라서 elasticsarch 에서 indexing 작업을 해줘야 합니다. (backfill)
+
+> 관련문서 (https://docs.amplify.aws/cli/graphql-transformer/searchable#backfill-your-elasticsearch-index-from-your-dynamodb-table)
+
+**ddb_to_es.py** 파일을 생성하고 다음 스크립트 (https://github.com/aws-amplify/amplify-cli/blob/master/packages/graphql-elasticsearch-transformer/scripts/ddb_to_es.py) 의 내용을 넣어주세요.
+
+ddb_to_es.py 를 실행할 sh 스크립트를 **backfill.sh** 에 만들어봅시다.
+
+- --rn 에는 사용중인 region 을 넣어주세요.
+- --tn 에는 dynamoDB 의 테이블 이름을 넣어주세요.
+- --lf 에는 Lambda function ARN. Lambda funcion 목록에서 DdbToEsFn 가 포함된 lambda 를 찾은후, ARN 을 복붙해 주세요.
+- --esarn 에는 DynamoDB 콘솔에서 "DynamoDB stream details" => "Latest stream ARN" 값을 넣어주세요.
+
+```sh
+#/bin/sh
+
+python3 ddb_to_es.py \
+  --rn 'ap-northeast-2' \
+  --tn 'Company-xxxxxxxx-dev' \
+  --lf 'arn:aws:lambda:ap-northeast-2:youraccountid:function:DdbToEsFn-xxxxxx-dev' \
+  --esarn 'arn:aws:dynamodb:ap-northeast-2:youraccountid:table/Company-xxxxxx-dev/stream/2021-05-07T05:09:45.698'
+```
+
+```sh
+$ chmod +x backfill.sh
+$ ./backfill.sh
+```
+
+> boto3 가 설치되어 있지 않아 에러가 난다면 설치해주세요. [문서](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html)
+
+### 검색 API 테스트
+
+AppSync dashboard 내 GraphQL editor 로 들어가면, API 를 테스트 할수 있습니다. AppSync dashboard 를 오픈하려면, 다음 명령어를 실행합니다.
+
+```sh
+$ amplify console api
+
+> Choose GraphQL
+```
+
+AppSync dashboard 에서 **Queries** 를 클릭해서 GraphQL editor 를 열고, 다음 mutation 으로 새로운 글을 생성합니다.
+
+`listCompanys` 쿼리로 companys 목록을 조회해봅니다.
+
+```graphql
+query MyQuery {
+  listCompanys {
+    items {
+      address
+      companyName
+      createdAt
+      id
+      registered
+      postalCode
+      industryName
+      registrationNum
+      streetAddress
+      yyyymm
+      updatedAt
+    }
+  }
+}
+```
+
+`searchCompanys` 를 통해 streetAddress로 검색이 잘 되는지 확인해봅니다.
+
+```graphql
+query MyQuery {
+  searchCompanys(filter: { streetAddress: { match: "서울특별시" } }) {
+    items {
+      address
+      companyName
+      createdAt
+      industryName
+      id
+      postalCode
+      registered
+      registrationNum
+      streetAddress
+      updatedAt
+      yyyymm
+    }
+  }
+}
+```
+
+`searchCompanys` 를 통해 streetAddress와 companyName 으로 검색이 잘 되는지 확인해봅니다.
+
+```graphql
+query MyQuery {
+  searchCompanys(
+    filter: {
+      streetAddress: { match: "서울특별시" }
+      companyName: { matchPhrase: "주식회사" }
+    }
+  ) {
+    items {
+      address
+      companyName
+      createdAt
+      industryName
+      id
+      postalCode
+      registered
+      registrationNum
+      streetAddress
+      updatedAt
+      yyyymm
+    }
+  }
+}
+```
