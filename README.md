@@ -242,6 +242,12 @@ $ amplify add hosting
 ? Choose a type: Manual deployment
 ```
 
+`amplify push` 명령어로 변경사항 (`add hosting`) 을 적용해봅니다.
+
+```sh
+$ amplify push
+```
+
 `amplify publish` 명령어로 hosting 으로 배포를 해봅니다.
 
 ```sh
@@ -290,6 +296,14 @@ type Company @model {
 ```
 
 schema 내용을 바꾼후, CLI 로 돌아가 enter 를 눌러 마무리해줍니다.
+
+`amplify push` 명령어로 변경사항 (`add api`) 을 적용해봅니다.
+
+```sh
+$ amplify push
+```
+
+완료후, Amplify 웹 콘솔로 들어가면 Backend 에 API (AppSync)가 추가된것을 확인할수 있습니다.
 
 ## Korean Company 데이터 추가
 
@@ -500,9 +514,9 @@ $ ruby bulk_insert_to_dynamodb.rb ~/Downloads/sample_data.json
 
 콘솔로 들어가 데이터가 잘 들어갔는지 확인해봅시다. Amplicy Console 로 들어가 Backend -> API -> View in AppSync -> Data Sources 에서 확인 가능합니다.
 
-## 검색 창 페이지
+## 검색 페이지
 
-검색 쿼리를 입력받는 페이지를 만들어봅시다.
+검색 쿼리를 입력받는 화면을 만들어봅시다.
 
 **pages/index.js** 를 다음과 같이 변경합니다.
 
@@ -563,3 +577,33 @@ function Home() {
 
 export default Home;
 ```
+
+## 검색 기능 추가
+
+검색을 가능하게 하기위해 **schema.graphql** 파일을 다음과 같이 수정합니다.
+
+```graphql
+type Company @model @searchable {
+  id: ID!
+  yyyymm: String!
+  companyName: String!
+  registrationNum: String!
+  industryName: String
+  registered: Boolean!
+  postalCode: String
+  address: String
+  streetAddress: String
+}
+```
+
+모델 정의에 `@searchable` 을 추가해주는 것만으로 해당 데이터 모델이 검색 가능하게 됩니다.
+
+> @searchable directive 문서 (https://docs.amplify.aws/cli/graphql-transformer/searchable)
+
+`amplify push` 명령어로 변경사항을 적용해봅시다.
+
+```sh
+$ amplify push
+```
+
+> 이전보다 시간이 오래걸립니다. 모델에 처음으로 searchable 을 추가하고 `amplify push` 를 하면 ElasticSearch 를 셋업하게 됩니다. **Amazon ElasticSearch 의 비용이 발생하게 됩니다.** 따라서 본 데모가 끝나면 프로젝트를 삭제하는게 필요합니다.
