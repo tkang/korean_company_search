@@ -11,7 +11,7 @@
 
 본 워크샾은 2~5시간 정도 걸릴것으로 예상됩니다.
 
-### Environment
+### 개발 환경 Environment
 
 시작하기전에, 아래 패키지들을 설치해주세요.
 
@@ -27,14 +27,14 @@
 
 React 와 GraphQL 에대한 지식이 있다면 도움이 되지만, 필수는 아닙니다.
 
-### Topics we'll be covering:
+### 본 가이드에서 다루어질 토픽들:
 
 - Web application Hosting
 - GraphQL API with AWS AppSync
 - Search with ElasticSearch
 - Deleting the resources
 
-## Getting Started - Creating a Next Application
+## 시작하기 - Next Application 생성
 
 [Create Next App](https://nextjs.org/docs/api-reference/create-next-app) 을 이용하여 새로운 프로젝트를 생성해봅시다.
 
@@ -152,7 +152,7 @@ $ git commit -m 'initial commit'
 $ git push origin main
 ```
 
-## Installing the Amplify CLI & Initializing a new AWS Amplify Project
+## Amplify CLI 설치 & AWS Amplify Project 초기화
 
 ### Amplify CLI 설치
 
@@ -250,7 +250,7 @@ $ amplify publish
 
 배포가 완료되면, 브라우져에서 터미널에 출력된 url 로 들어가보셔서 next.js 앱이 정상적으로 로딩되는 것을 확인해주세요.
 
-## Adding an AWS AppSync GraphQL API
+## AppSync GraphQL API 추가
 
 GraphQL API 를 추가하기 위해선, 다음 명령어를 실행합니다.
 일단 api key 를 가지고 있는 클라이언트들은 접근할수 있는 public api 로 만들겠습니다.
@@ -290,3 +290,82 @@ type Company @model {
 ```
 
 schema 내용을 바꾼후, CLI 로 돌아가 enter 를 눌러 마무리해줍니다.
+
+## Company 데이터 추가하기
+
+[공공데이터 포털](https://www.data.go.kr)에 있는 데이터를 이용하도록 하겠습니다.
+
+### 데이터 다운로드
+
+**국민연금공단\_국민연금 가입 사업장 내역**[Link](https://www.data.go.kr/data/3046071/fileData.do) 페이지로 들어가 파일을 다운로드 합니다.
+
+다운로드후 파일명은 영문으로 변경해주세요. 파일은 `~/Downloads` 폴더에 저장되어있다고 가정하겠습니다.
+
+```sh
+$ mv ~/Downloads/국민연금공단_국민연금 가입 사업장 내역_20210420.csv ~/Downloads/KoreaNationalPensionData_20210420.csv
+```
+
+utf-8 으로 인코딩 변환이 필요합니다.
+
+```sh
+$ iconv -f cp949 -t UTF-8 ~/Downloads/KoreaNationalPensionData_20210420.csv > ~/Downloads/KoreaNationalPensionData_20210420_UTF8.csv
+```
+
+첫번째 라인은 header 이기 때문에 첫번째 라인을 빼줍니다.
+
+```sh
+$ tail -n +2 ~/Downloads/KoreaNationalPensionData_20210420_UTF.csv > ~/Downloads/data.csv
+```
+
+## json 형식으로 변환
+
+csv 에서 json 형식으로 변환하기 위해 아래와 같은 스크립트를 작성해주세요.
+
+**_csv_to_json.rb_**
+
+```rb
+#!/usr/bin/ruby
+
+require 'json'
+
+input_filename = ARGV[0]
+if input_filename.strip.to_s === ""
+  puts "please provide input filename"
+  exit(-1)
+end
+
+File.readlines(input_filename).each do |line|
+  splits = line.strip.split(",")
+  n = splits.length
+  yyyymm = splits[0]
+  company_name = splits[1]
+  registration_num = splits[2]
+  registered = splits[3] == 1
+  postal_code = splits[4]
+  address = splits[5]
+  street_address = splits[6]
+  industry_name= splits[n-8]
+  h = { yyyymm: yyyymm,
+        companyName: company_name,
+        registrationNum: registration_num,
+        industryName: industry_name,
+        registered: registered,
+        postalCode: postal_code,
+        address: address,
+        streetAddress: street_address
+      }
+  puts h.to_json
+end
+```
+
+위 스크립트를 이용하여 csv 를 json 으로 변환해봅니다.
+
+```sh
+$ ruby csv_to_json.rb ~/Downloads/data.csv > ~/Downloads/data.json
+```
+
+json 형식으로 변환이 잘 되었는지 확인해봅시다.
+
+```sh
+$ head -n 10 ~/Downloads/data.json
+```
