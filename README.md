@@ -213,3 +213,39 @@ amplify 프로젝트 상태를 Amplify console 로 확인하고 싶다면, `ampl
 ```sh
 $ amplify console
 ```
+
+## Hosting
+
+Amplify Console 은 배포와 CI 를 위한 hosting 서비스 입니다.
+
+우선 build 스크립트 변경을 위해 **package.json** 안의 내용중 `scripts` 부분을 다음과 같이 변경해주세요.
+
+```diff
+"scripts": {
+  "dev": "next dev",
+-  "build": "next build",
++  "build": "next build && next export",
+  "start": "next start"
+},
+```
+
+> `next export` 는 next.js app 을 static HTML 파일로 변환해줍니다. 따라서 Node 서버가 필요 없이 app 을 로딩할수 있습니다.
+
+> Amplify hosting 에서는 2021년 4월 현재 static file 만 서빙 가능합니다. 하지만 곧 server-side rendering 을 지원할 예정입니다.
+
+Hosting 을 추가하기 위해, 다음 명령어를 실행합니다.
+
+```sh
+$ amplify add hosting
+
+? Select the plugin module to execute: Hosting with Amplify Console (Managed hosting with custom domains, Continuous deployment)
+? Choose a type: Manual deployment
+```
+
+`amplify publish` 명령어로 hosting 으로 배포를 해봅니다.
+
+```sh
+$ amplify publish
+```
+
+배포가 완료되면, 브라우져에서 터미널에 출력된 url 로 들어가보셔서 next.js 앱이 정상적으로 로딩되는 것을 확인해주세요.
