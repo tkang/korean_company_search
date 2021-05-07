@@ -185,7 +185,7 @@ amplify 프로젝트를 초기화 해봅시다.
 ```sh
 $ amplify init
 
-- Enter a name for the project: petstagram
+- Enter a name for the project: koreancompanysearch
 - Enter a name for the environment: dev
 - Choose your default editor: Visual Studio Code (or your default editor)
 - Please choose the type of app that youre building: javascript
@@ -249,3 +249,44 @@ $ amplify publish
 ```
 
 배포가 완료되면, 브라우져에서 터미널에 출력된 url 로 들어가보셔서 next.js 앱이 정상적으로 로딩되는 것을 확인해주세요.
+
+## Adding an AWS AppSync GraphQL API
+
+GraphQL API 를 추가하기 위해선, 다음 명령어를 실행합니다.
+일단 api key 를 가지고 있는 클라이언트들은 접근할수 있는 public api 로 만들겠습니다.
+
+```sh
+$ amplify add api
+
+? Please select from one of the above mentioned services: GraphQL
+? Provide API name: koreancompanysearch
+? Choose the default authorization type for the API: API key
+? Enter a description for the API key: public
+? After how many days from now the API key should expire (1-365): 365 (or your preferred expiration)
+? Do you want to configure advanced settings for the GraphQL API: No
+? Do you have an annotated GraphQL schema? N
+? Choose a schema template: Single object with fields
+? Do you want to edit the schema now? (Y/n) Y
+```
+
+실행된 CLI 는 GraphQL schema 를 텍스트 에디터로 수정할수 있게 로딩됩니다.
+
+**amplify/backend/api/petstagram/schema.graphql**
+
+schema 내용을 다음과 같이 바꿔봅시다.
+
+```graphql
+type Company @model {
+  id: ID!
+  yyyymm: String!
+  companyName: String!
+  registrationNum: String!
+  industryName: String
+  registered: Boolean!
+  postalCode: String
+  address: String
+  streetAddress: String
+}
+```
+
+schema 내용을 바꾼후, CLI 로 돌아가 enter 를 눌러 마무리해줍니다.
