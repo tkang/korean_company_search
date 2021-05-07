@@ -291,13 +291,13 @@ type Company @model {
 
 schema 내용을 바꾼후, CLI 로 돌아가 enter 를 눌러 마무리해줍니다.
 
-## Company 데이터 추가하기
+## Korean Company 데이터 추가
 
 [공공데이터 포털](https://www.data.go.kr)에 있는 데이터를 이용하도록 하겠습니다.
 
 ### 데이터 다운로드
 
-**국민연금공단\_국민연금 가입 사업장 내역**[Link](https://www.data.go.kr/data/3046071/fileData.do) 페이지로 들어가 파일을 다운로드 합니다.
+**국민연금공단\_국민연금 가입 사업장 내역**(https://www.data.go.kr/data/3046071/fileData.do) 페이지로 들어가 파일을 다운로드 합니다.
 
 다운로드후 파일명은 영문으로 변경해주세요. 파일은 `~/Downloads` 폴더에 저장되어있다고 가정하겠습니다.
 
@@ -314,12 +314,16 @@ $ iconv -f cp949 -t UTF-8 ~/Downloads/KoreaNationalPensionData_20210420.csv > ~/
 첫번째 라인은 header 이기 때문에 첫번째 라인을 빼줍니다.
 
 ```sh
-$ tail -n +2 ~/Downloads/KoreaNationalPensionData_20210420_UTF.csv > ~/Downloads/data.csv
+$ tail -n +2 ~/Downloads/KoreaNationalPensionData_20210420_UTF.csv > ~/Downloads/all_data.csv
 ```
 
-## json 형식으로 변환
+### 원본 데이터 관련 몇가지 Note
 
-csv 에서 json 형식으로 변환하기 위해 아래와 같은 스크립트를 작성해주세요.
+데이터를 확인해본 결과, 50만건 이상의 레코드가 있습니다. 동일한 회사명 혹은 동일한 사업자 등록번호들이 존재합니다. 따라서 회사명이나 사업자 등록번호를 데이터베이스의 키로 사용할수 없습니다. 회사명과 사업자등록번호를 조합하여 키로 사용하는것을 고려해볼수는 있으나, uniqueness 를 확인하지는 못했습니다.
+
+## csv -> json 형식으로 변환
+
+원본 데이터를 csv 에서 json 형식으로 변환하기 위해 아래와 같은 스크립트를 작성해주세요.
 
 **_csv_to_json.rb_**
 
@@ -361,11 +365,137 @@ end
 위 스크립트를 이용하여 csv 를 json 으로 변환해봅니다.
 
 ```sh
-$ ruby csv_to_json.rb ~/Downloads/data.csv > ~/Downloads/data.json
+$ ruby csv_to_json.rb ~/Downloads/all_data.csv > ~/Downloads/all_data.json
 ```
 
 json 형식으로 변환이 잘 되었는지 확인해봅시다.
 
 ```sh
-$ head -n 10 ~/Downloads/data.json
+$ head -n 10 ~/Downloads/all_data.json
 ```
+
+개발/테스트를 위해 일부 데이터만 추출해봅니다. 처음 200개만 추출해보도록 하겠습니다.
+
+```sh
+$ head -n 200 ~/Downloads/all_data.json > ~/Downloads/sample_data.json
+```
+
+## DynamoDB 로 데이터 넣기
+
+json 원본 json 데이터를 DynamoDB 로 넣도록 하겠습니다. 일단 **aws-sdk-dynamodb** gem 을 설치해주세요.
+
+```sh
+$ gem install aws-sdk-dynamodb
+```
+
+> permission error 가 나는 경우 `sudo gem install aws-sdk-dynamodb` 명령어로 설치해주세요.
+
+dynamodb 로 데이터를 넣기 위해 다음과 같이 스크립트를 만들어 주세요.
+
+**_bulk_insert_to_dynamodb.rb_**
+
+넣어야 하는 레코드의 수가 많기 때문에 batch write 을 이용하여 한번요청에 여러건의 데이터를 넣어도록 하겠습니다.
+
+> batch_write_item api 문서 (https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/DynamoDB/Client.html#batch_write_item-instance_method)
+
+- `REGION` 의 값은 amplify 초기화할때 선택했던 region 으로 해주세요. (ap-northeast-2)
+- `TABLE_NAME` 은 dynamoDB 의 테이블 이름입니다. Amplicy Console 로 들어가 Backend -> API -> View in AppSync -> Data Sources 에서 확인 가능합니다.
+
+```rb
+#!/usr/bin/ruby
+
+require 'aws-sdk-dynamodb'
+require 'json'
+require 'date'
+require 'securerandom'
+
+REGION = 'ap-northeast-2' # amplify 초기화한 region
+TABLE_NAME = 'your-dynamodb-tablename' # dynamodb 테이블이름 - AppSync console 에서 확인 가능합니다.
+
+def create_batch_write_request(lines, table_name)
+  {
+    request_items: {
+      "#{table_name}" => lines.map { |line| create_put_request(line) }
+    }
+  }
+end
+
+def fix_company_data(company)
+  addr = company["address"]
+  str_addr = company["streetAddress"]
+
+	now = DateTime.now.iso8601(3)
+  return company.merge("streetAddress" => str_addr.strip,
+                        "address" => addr.strip,
+                        "createdAt" => now,
+                        "updatedAt" => now,
+                        "id" => SecureRandom.uuid)
+end
+
+# {"yyyymm":"2021-03","companyName":"세영세무법인","registrationNum":"215862","industryName":"기타 엔지니어링 서비스업","registered":true,"postalCode":"11757","address":"경기도 의정부시 금오동","streetAddress":"경기도 의정부시 청사로47번길","totalEmployeeCount":3,"newEmployeeCount":0,"quitEmployeeCount":0,"nationalPensionPaidTotal":505780,"nationalPensionPaidPerEmployee":168593,"registered_int":1,"avgMonthlySalary":1873255}
+def create_put_request(line)
+  company = JSON.parse(line)
+  company = fix_company_data(company)
+  {
+    put_request: {
+      item: company
+    }
+  }
+end
+
+data_file = ARGV[0]
+if data_file.to_s.strip === ""
+  puts "please provide input filename"
+  exit(-1)
+end
+
+region = REGION
+table_name = TABLE_NAME
+dynamodb_client = Aws::DynamoDB::Client.new(region: region)
+
+puts "Adding companies from file '#{data_file}' into table '#{table_name}'"
+
+header_lines = 0
+batch_size = 25
+
+File.open(data_file) do |file|
+  file.lazy.drop(header_lines).each_slice(batch_size) do |lines|
+    batch_write_request = create_batch_write_request(lines, table_name)
+    puts batch_write_request
+    # batch_write_item api : https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/DynamoDB/Client.html#batch_write_item-instance_method
+    dynamodb_client.batch_write_item(batch_write_request)
+  end
+end
+
+puts 'Done.'
+```
+
+### 데이터 넣기
+
+스크립트에서 사용하는 aws-sdk client 에서는 credential 이 필요합니다. 스크립트/코드 안에 credential 정보를 넣는것은 위험하니 시스템에서 credential 을 읽어오도록 합시다.
+
+aws-sdk client 에서는 기본적으로는 `~/.aws/credentials` 파일안의 `[default]` 에서 정보를 읽어옵니다.
+
+`~/.aws/credentials` 파일을 열어 amplify configure 과정에서 생성된 profile 의 credential 을 넣어줍시다.
+
+```
+$ vim ~/.aws/credentials
+```
+
+```
+[default]]
+aws_access_key_id=your-access-key-id
+aws_secret_access_key=your-secret-key
+
+[amplify-user]
+aws_access_key_id=your-access-key-id
+aws_secret_access_key=your-secret-key
+```
+
+이제, 작성한 스크립트를 실행해봅시다.
+
+```sh
+$ ruby bulk_insert_to_dynamodb.rb ~/Downloads/sample_data.json
+```
+
+콘솔로 들어가 데이터가 잘 들어갔는지 확인해봅시다. Amplicy Console 로 들어가 Backend -> API -> View in AppSync -> Data Sources 에서 확인 가능합니다.

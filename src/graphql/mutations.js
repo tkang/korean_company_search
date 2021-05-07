@@ -1,43 +1,61 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const createTodo = /* GraphQL */ `
-  mutation CreateTodo(
-    $input: CreateTodoInput!
-    $condition: ModelTodoConditionInput
+export const createCompany = /* GraphQL */ `
+  mutation CreateCompany(
+    $input: CreateCompanyInput!
+    $condition: ModelCompanyConditionInput
   ) {
-    createTodo(input: $input, condition: $condition) {
+    createCompany(input: $input, condition: $condition) {
       id
-      name
-      description
+      yyyymm
+      companyName
+      registrationNum
+      industryName
+      registered
+      postalCode
+      address
+      streetAddress
       createdAt
       updatedAt
     }
   }
 `;
-export const updateTodo = /* GraphQL */ `
-  mutation UpdateTodo(
-    $input: UpdateTodoInput!
-    $condition: ModelTodoConditionInput
+export const updateCompany = /* GraphQL */ `
+  mutation UpdateCompany(
+    $input: UpdateCompanyInput!
+    $condition: ModelCompanyConditionInput
   ) {
-    updateTodo(input: $input, condition: $condition) {
+    updateCompany(input: $input, condition: $condition) {
       id
-      name
-      description
+      yyyymm
+      companyName
+      registrationNum
+      industryName
+      registered
+      postalCode
+      address
+      streetAddress
       createdAt
       updatedAt
     }
   }
 `;
-export const deleteTodo = /* GraphQL */ `
-  mutation DeleteTodo(
-    $input: DeleteTodoInput!
-    $condition: ModelTodoConditionInput
+export const deleteCompany = /* GraphQL */ `
+  mutation DeleteCompany(
+    $input: DeleteCompanyInput!
+    $condition: ModelCompanyConditionInput
   ) {
-    deleteTodo(input: $input, condition: $condition) {
+    deleteCompany(input: $input, condition: $condition) {
       id
-      name
-      description
+      yyyymm
+      companyName
+      registrationNum
+      industryName
+      registered
+      postalCode
+      address
+      streetAddress
       createdAt
       updatedAt
     }

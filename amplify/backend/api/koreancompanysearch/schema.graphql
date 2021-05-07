@@ -1,5 +1,11 @@
-type Todo @model {
+type Company @model {
   id: ID!
-  name: String!
-  description: String
+  yyyymm: String!
+  companyName: String!
+  registrationNum: String!
+  industryName: String
+  registered: Boolean!
+  postalCode: String
+  address: String
+  streetAddress: String
 }
