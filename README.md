@@ -993,3 +993,35 @@ function CompanyPage() {
 
 export default CompanyPage;
 ```
+
+## Local mocking
+
+API, database, storage 를 로컬에서 mock 으로 띄우려면 `amplify mock` 을 실행하면 됩니다.
+
+```sh
+$ amplify mock
+```
+
+## Removing Services
+
+만약에 프로젝트와 어카운트에서 서비스를 삭제하고 싶으면 `amplify remove` 명령어로 수행할수 있습니다.
+
+```sh
+$ amplify remove auth
+
+$ amplify push
+```
+
+어떤 서비스가 enabled 되어있는지 모르겠으면 `amplify status` 로 확인할수 있습니다.
+
+```sh
+$ amplify status
+```
+
+### Deleting the Amplify project and all services
+
+프로젝트를 모두 지우고 싶다면 `amplify delete` 명령어로 할수 있습니다.
+
+```sh
+$ amplify delete
+```
