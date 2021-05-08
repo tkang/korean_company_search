@@ -694,6 +694,7 @@ import Head from "next/head";
 import { useState } from "react";
 import * as queries from "../src/graphql/queries";
 import { API, graphqlOperation } from "aws-amplify";
+import { useRouter } from "next/router";
 
 function HighlightedTextDiv({ text, highlitedText }) {
   const startIdx = text.indexOf(highlitedText);
@@ -713,21 +714,33 @@ function HighlightedTextDiv({ text, highlitedText }) {
   );
 }
 
-function SuggestedText({ company, searchText }) {
+function SuggestedText({ company, searchText, highlighted }) {
   return (
     <li
-      className="text-gray-900 cursor-default select-none relative py-2 pl-3 pr-9"
+      className={`${
+        highlighted ? "text-white bg-indigo-600" : "text-gray-900"
+      } cursor-default select-none relative py-2 pl-3 pr-9`}
       id="listbox-option-0"
       role="option"
     >
       <div className="flex">
-        <span className="font-normal truncate">
+        {/* Selected: "font-semibold", Not Selected: "font-normal" */}
+        <span
+          className={`${
+            highlighted ? "font-semibold" : "font-normal"
+          } truncate`}
+        >
           <HighlightedTextDiv
             text={company.companyName}
             highlitedText={searchText.trim()}
           />
         </span>
-        <span className="text-gray-500 ml-2 truncate">
+        {/* Highlighted: "text-indigo-200", Not Highlighted: "text-gray-500" */}
+        <span
+          className={`${
+            highlighted ? "text-indigo-200" : "text-gray-500"
+          } ml-2 truncate`}
+        >
           {company.streetAddress ? company.streetAddress : company.address}
         </span>
       </div>
@@ -738,6 +751,9 @@ function SuggestedText({ company, searchText }) {
 function Home() {
   const [query, setQuery] = useState("");
   const [searchedCompanies, setSearchedCompanies] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+
+  const router = useRouter();
 
   const handleSearchBtnClick = (e) => {
     sendSearchQuery();
@@ -760,8 +776,21 @@ function Home() {
   };
 
   const handleSuggestedCompanyClick = (company) => {
-    console.log("clicked = ", company);
+    router.push(`/company/${company.id}`);
   };
+
+  const handleKeyDown = (e) => {
+    if (e.keyCode === 38 && currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    } else if (
+      e.keyCode === 40 &&
+      currentIndex < searchedCompanies.length - 1
+    ) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  console.log("currentIndex = ", currentIndex);
 
   return (
     <div>
@@ -795,6 +824,7 @@ function Home() {
                       id="searchQuery"
                       value={query}
                       onChange={handleQueryChange}
+                      onKeyDown={handleKeyDown}
                       className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
                     />
                   </div>
@@ -803,17 +833,22 @@ function Home() {
                   <div className="mx-auto w-2/4">
                     <ul
                       className="mt-1 bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
-                      tabIndex={-1}
+                      tabIndex={currentIndex}
                       role="listbox"
                       aria-labelledby="listbox-label"
                       aria-activedescendant="listbox-option-3"
                     >
-                      {searchedCompanies.map((c) => (
+                      {searchedCompanies.map((c, idx) => (
                         <div
                           key={`${c.companyName}#${c.streetAddress}`}
                           onClick={() => handleSuggestedCompanyClick(c)}
+                          onMouseOver={() => setCurrentIndex(idx)}
                         >
-                          <SuggestedText company={c} searchText={query} />
+                          <SuggestedText
+                            company={c}
+                            searchText={query}
+                            highlighted={idx === currentIndex}
+                          />
                         </div>
                       ))}
                     </ul>
@@ -838,4 +873,123 @@ function Home() {
 }
 
 export default Home;
+```
+
+## 상세 페이지
+
+회사 상세 정보를 보여주는 페이지를 다음과 같이 만들어줍시다.
+
+**pages/company/[id].js** 를 다음과 같이 생성합니다.
+
+```javascript
+import Head from "next/head";
+import { useRouter } from "next/router";
+import { useState, useEffect } from "react";
+import * as queries from "../../src/graphql/queries";
+import { API } from "aws-amplify";
+
+function Company({ company }) {
+  const {
+    companyName,
+    address,
+    streetAddress,
+    industryName,
+    registrationNum,
+    postalCode,
+    createdAt,
+    updatedAt,
+    yyyymm,
+    registered,
+  } = company;
+  return (
+    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div className="px-4 py-5 sm:px-6">
+        <h3 className="text-lg leading-6 font-medium text-gray-900">
+          {companyName}
+        </h3>
+        <p className="mt-1 max-w-2xl text-sm text-gray-500">
+          {streetAddress ? streetAddress : address}
+        </p>
+      </div>
+      <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
+        <dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
+          <div className="sm:col-span-1">
+            <dt className="text-sm font-medium text-gray-500">업종</dt>
+            <dd className="mt-1 text-sm text-gray-900">{industryName} </dd>
+          </div>
+          <div className="sm:col-span-1">
+            <dt className="text-sm font-medium text-gray-500">
+              사업자등록번호
+            </dt>
+            <dd className="mt-1 text-sm text-gray-900">{registrationNum} </dd>
+          </div>
+          <div className="sm:col-span-1">
+            <dt className="text-sm font-medium text-gray-500">최종 업데이트</dt>
+            <dd className="mt-1 text-sm text-gray-900">{yyyymm}</dd>
+          </div>
+          <div className="sm:col-span-1">
+            <dt className="text-sm font-medium text-gray-500">등록유효여부</dt>
+            <dd className="mt-1 text-sm text-gray-900">
+              {registered ? "Y" : "N"}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  );
+}
+function CompanyPage() {
+  const router = useRouter();
+  const { id } = router.query;
+  const [company, setCompany] = useState();
+
+  useEffect(() => {
+    if (id) {
+      console.log("fetching with id = ", id);
+      fetchCompany();
+    }
+  }, [id]);
+
+  const fetchCompany = async () => {
+    const data = await API.graphql({
+      query: queries.getCompany,
+      variables: { id: id },
+    });
+    setCompany(data.data.getCompany);
+  };
+
+  return (
+    <div>
+      <Head>
+        <title>Korean Company Search</title>
+        <link
+          rel="icon"
+          href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔍</text></svg>"
+        />
+      </Head>
+
+      <div className="container mx-auto">
+        <main>
+          <div className="bg-white">
+            <div className="max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
+              <div className="text-center">
+                <p className="mt-1 text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
+                  {!company && "Loading..."}
+                  {company && company.companyName}
+                </p>
+              </div>
+            </div>
+            {company && (
+              <div className="mt-1">
+                <Company company={company} />
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default CompanyPage;
 ```

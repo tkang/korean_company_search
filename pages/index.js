@@ -2,6 +2,7 @@ import Head from "next/head";
 import { useState } from "react";
 import * as queries from "../src/graphql/queries";
 import { API, graphqlOperation } from "aws-amplify";
+import { useRouter } from "next/router";
 
 function HighlightedTextDiv({ text, highlitedText }) {
   const startIdx = text.indexOf(highlitedText);
@@ -21,23 +22,33 @@ function HighlightedTextDiv({ text, highlitedText }) {
   );
 }
 
-function SuggestedText({ company, searchText }) {
+function SuggestedText({ company, searchText, highlighted }) {
   return (
     <li
-      className="text-gray-900 cursor-default select-none relative py-2 pl-3 pr-9"
+      className={`${
+        highlighted ? "text-white bg-indigo-600" : "text-gray-900"
+      } cursor-default select-none relative py-2 pl-3 pr-9`}
       id="listbox-option-0"
       role="option"
     >
       <div className="flex">
         {/* Selected: "font-semibold", Not Selected: "font-normal" */}
-        <span className="font-normal truncate">
+        <span
+          className={`${
+            highlighted ? "font-semibold" : "font-normal"
+          } truncate`}
+        >
           <HighlightedTextDiv
             text={company.companyName}
             highlitedText={searchText.trim()}
           />
         </span>
         {/* Highlighted: "text-indigo-200", Not Highlighted: "text-gray-500" */}
-        <span className="text-gray-500 ml-2 truncate">
+        <span
+          className={`${
+            highlighted ? "text-indigo-200" : "text-gray-500"
+          } ml-2 truncate`}
+        >
           {company.streetAddress ? company.streetAddress : company.address}
         </span>
       </div>
@@ -48,6 +59,9 @@ function SuggestedText({ company, searchText }) {
 function Home() {
   const [query, setQuery] = useState("");
   const [searchedCompanies, setSearchedCompanies] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+
+  const router = useRouter();
 
   const handleSearchBtnClick = (e) => {
     sendSearchQuery();
@@ -70,8 +84,21 @@ function Home() {
   };
 
   const handleSuggestedCompanyClick = (company) => {
-    console.log("clicked = ", company);
+    router.push(`/company/${company.id}`);
   };
+
+  const handleKeyDown = (e) => {
+    if (e.keyCode === 38 && currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    } else if (
+      e.keyCode === 40 &&
+      currentIndex < searchedCompanies.length - 1
+    ) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  console.log("currentIndex = ", currentIndex);
 
   return (
     <div>
@@ -105,6 +132,7 @@ function Home() {
                       id="searchQuery"
                       value={query}
                       onChange={handleQueryChange}
+                      onKeyDown={handleKeyDown}
                       className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
                     />
                   </div>
@@ -113,17 +141,22 @@ function Home() {
                   <div className="mx-auto w-2/4">
                     <ul
                       className="mt-1 bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
-                      tabIndex={-1}
+                      tabIndex={currentIndex}
                       role="listbox"
                       aria-labelledby="listbox-label"
                       aria-activedescendant="listbox-option-3"
                     >
-                      {searchedCompanies.map((c) => (
+                      {searchedCompanies.map((c, idx) => (
                         <div
                           key={`${c.companyName}#${c.streetAddress}`}
                           onClick={() => handleSuggestedCompanyClick(c)}
+                          onMouseOver={() => setCurrentIndex(idx)}
                         >
-                          <SuggestedText company={c} searchText={query} />
+                          <SuggestedText
+                            company={c}
+                            searchText={query}
+                            highlighted={idx === currentIndex}
+                          />
                         </div>
                       ))}
                     </ul>
