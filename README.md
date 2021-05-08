@@ -437,13 +437,14 @@ end
 def fix_company_data(company)
   addr = company["address"]
   str_addr = company["streetAddress"]
+  id = "#{company["registrationNum"]}##{company["companyName"]}"
 
 	now = DateTime.now.iso8601(3)
   return company.merge("streetAddress" => str_addr.strip,
                         "address" => addr.strip,
                         "createdAt" => now,
                         "updatedAt" => now,
-                        "id" => SecureRandom.uuid)
+                        "id" => id)
 end
 
 # {"yyyymm":"2021-03","companyName":"세영세무법인","registrationNum":"215862","industryName":"기타 엔지니어링 서비스업","registered":true,"postalCode":"11757","address":"경기도 의정부시 금오동","streetAddress":"경기도 의정부시 청사로47번길","totalEmployeeCount":3,"newEmployeeCount":0,"quitEmployeeCount":0,"nationalPensionPaidTotal":505780,"nationalPensionPaidPerEmployee":168593,"registered_int":1,"avgMonthlySalary":1873255}
