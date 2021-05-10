@@ -42,3 +42,36 @@ export const listCompanys = /* GraphQL */ `
     }
   }
 `;
+export const searchCompanys = /* GraphQL */ `
+  query SearchCompanys(
+    $filter: SearchableCompanyFilterInput
+    $sort: SearchableCompanySortInput
+    $limit: Int
+    $nextToken: String
+    $from: Int
+  ) {
+    searchCompanys(
+      filter: $filter
+      sort: $sort
+      limit: $limit
+      nextToken: $nextToken
+      from: $from
+    ) {
+      items {
+        id
+        yyyymm
+        companyName
+        registrationNum
+        industryName
+        registered
+        postalCode
+        address
+        streetAddress
+        createdAt
+        updatedAt
+      }
+      nextToken
+      total
+    }
+  }
+`;

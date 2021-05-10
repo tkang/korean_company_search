@@ -698,103 +698,52 @@ import Head from "next/head";
 import { useState } from "react";
 import * as queries from "../src/graphql/queries";
 import { API, graphqlOperation } from "aws-amplify";
-import { useRouter } from "next/router";
-
-function HighlightedTextDiv({ text, highlitedText }) {
-  const startIdx = text.indexOf(highlitedText);
-  const endIdx = startIdx + highlitedText.length - 1;
-
-  return (
-    <div>
-      {text.split("").map((c, idx) => (
-        <span
-          key={idx}
-          className={startIdx <= idx && idx <= endIdx ? `text-red-500` : ``}
-        >
-          {c}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function SuggestedText({ company, searchText, highlighted }) {
-  return (
-    <li
-      className={`${
-        highlighted ? "text-white bg-indigo-600" : "text-gray-900"
-      } cursor-default select-none relative py-2 pl-3 pr-9`}
-      id="listbox-option-0"
-      role="option"
-    >
-      <div className="flex">
-        {/* Selected: "font-semibold", Not Selected: "font-normal" */}
-        <span
-          className={`${
-            highlighted ? "font-semibold" : "font-normal"
-          } truncate`}
-        >
-          <HighlightedTextDiv
-            text={company.companyName}
-            highlitedText={searchText.trim()}
-          />
-        </span>
-        {/* Highlighted: "text-indigo-200", Not Highlighted: "text-gray-500" */}
-        <span
-          className={`${
-            highlighted ? "text-indigo-200" : "text-gray-500"
-          } ml-2 truncate`}
-        >
-          {company.streetAddress ? company.streetAddress : company.address}
-        </span>
-      </div>
-    </li>
-  );
-}
+import Link from "next/link";
 
 function Home() {
   const [query, setQuery] = useState("");
   const [searchedCompanies, setSearchedCompanies] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(-1);
-
-  const router = useRouter();
+  const [nextToken, setNextToken] = useState(null);
+  const [queryingInProgress, setQueryingInProgress] = useState(false);
 
   const handleSearchBtnClick = (e) => {
-    sendSearchQuery();
+    setSearchedCompanies([]);
+    sendSearchQuery(query, null);
   };
 
-  const sendSearchQuery = async (q) => {
+  const sendSearchQuery = async (q, nt) => {
+    if (queryingInProgress) {
+      return;
+    }
+
     console.log("sending query = ", q);
+    setQueryingInProgress(true);
     const res = await API.graphql(
       graphqlOperation(queries.searchCompanys, {
         filter: { companyName: { matchPhrase: q } },
+        limit: 20,
+        nextToken: nt,
       })
     );
+    setSearchedCompanies((searchedCompanies) => [
+      ...searchedCompanies,
+      ...res.data.searchCompanys.items,
+    ]);
+    setNextToken(res.data.searchCompanys.nextToken);
+    setQueryingInProgress(false);
+  };
 
-    setSearchedCompanies(res.data.searchCompanys.items);
+  const loadMore = (e) => {
+    e.preventDefault();
+    sendSearchQuery(query, nextToken);
   };
 
   const handleQueryChange = (e) => {
     setQuery(e.target.value);
-    sendSearchQuery(e.target.value);
   };
 
-  const handleSuggestedCompanyClick = (company) => {
-    router.push(`/company/${company.id}`);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.keyCode === 38 && currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    } else if (
-      e.keyCode === 40 &&
-      currentIndex < searchedCompanies.length - 1
-    ) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  console.log("currentIndex = ", currentIndex);
+  console.log("nextToken = ", nextToken);
+  console.log("searchedCompanies = ", searchedCompanies);
 
   return (
     <div>
@@ -828,44 +777,59 @@ function Home() {
                       id="searchQuery"
                       value={query}
                       onChange={handleQueryChange}
-                      onKeyDown={handleKeyDown}
                       className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
                     />
                   </div>
                 </div>
-                {searchedCompanies.length > 0 && (
-                  <div className="mx-auto w-2/4">
-                    <ul
-                      className="mt-1 bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
-                      tabIndex={currentIndex}
-                      role="listbox"
-                      aria-labelledby="listbox-label"
-                      aria-activedescendant="listbox-option-3"
+                <div className="mt-5">
+                  {queryingInProgress ? (
+                    <div>Searching...</div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSearchBtnClick}
+                      className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
+                      Search Companies
+                    </button>
+                  )}
+                </div>
+                <div className="mx-auto w-2/4 mt-5">
+                  <div className="flow-root mt-6">
+                    <ul className="-my-5 divide-y divide-gray-200">
                       {searchedCompanies.map((c, idx) => (
-                        <div
-                          key={`${c.companyName}#${c.streetAddress}`}
-                          onClick={() => handleSuggestedCompanyClick(c)}
-                          onMouseOver={() => setCurrentIndex(idx)}
-                        >
-                          <SuggestedText
-                            company={c}
-                            searchText={query}
-                            highlighted={idx === currentIndex}
-                          />
-                        </div>
+                        <li key={c.id} className="py-5">
+                          <div className="relative focus-within:ring-2 focus-within:ring-indigo-500">
+                            <h3 className="text-sm font-semibold text-gray-800">
+                              <Link href={`/company/${c.id}`}>
+                                <a className="hover:underline focus:outline-none">
+                                  {/* Extend touch target to entire panel */}
+                                  <span
+                                    className="absolute inset-0"
+                                    aria-hidden="true"
+                                  />
+                                  {c.companyName}
+                                </a>
+                              </Link>
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-600 line-clamp-2">
+                              {c.streetAddress ? c.streetAddress : c.address}
+                            </p>
+                          </div>
+                        </li>
                       ))}
                     </ul>
                   </div>
-                )}
-                <div className="mt-5">
-                  <button
-                    type="button"
-                    onClick={handleSearchBtnClick}
-                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Search Companies
-                  </button>
+                  {nextToken !== null && (
+                    <div className="mt-6">
+                      <button
+                        onClick={loadMore}
+                        className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        {queryingInProgress ? "Loading..." : "Load More"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
