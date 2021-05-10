@@ -1,4 +1,4 @@
-type Company @model {
+type Company @model @searchable {
   id: ID!
   yyyymm: String!
   companyName: String!
