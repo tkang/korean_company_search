@@ -11,11 +11,13 @@ export const createCompany = /* GraphQL */ `
       yyyymm
       companyName
       registrationNum
-      industryName
       registered
       postalCode
       address
       streetAddress
+      companyType
+      industryCode
+      industryName
       createdAt
       updatedAt
     }
@@ -31,11 +33,13 @@ export const updateCompany = /* GraphQL */ `
       yyyymm
       companyName
       registrationNum
-      industryName
       registered
       postalCode
       address
       streetAddress
+      companyType
+      industryCode
+      industryName
       createdAt
       updatedAt
     }
@@ -51,11 +55,13 @@ export const deleteCompany = /* GraphQL */ `
       yyyymm
       companyName
       registrationNum
-      industryName
       registered
       postalCode
       address
       streetAddress
+      companyType
+      industryCode
+      industryName
       createdAt
       updatedAt
     }

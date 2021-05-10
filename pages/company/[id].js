@@ -54,6 +54,7 @@ function Company({ company }) {
     </div>
   );
 }
+
 function CompanyPage() {
   const router = useRouter();
   const { id } = router.query;

@@ -3,9 +3,11 @@ type Company @model @searchable {
   yyyymm: String!
   companyName: String!
   registrationNum: String!
-  industryName: String
   registered: Boolean!
   postalCode: String
   address: String
   streetAddress: String
+  companyType: String
+  industryCode: String
+  industryName: String
 }

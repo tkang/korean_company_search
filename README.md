@@ -1,13 +1,13 @@
 # Build a Search Service (Korean Company Registration Info Directory/Search) with Next.js and AWS Amplify
 
-본 워크샾에서는, [Amplify](https://docs.amplify.aws/), Next.js, GraphQL 을 이용하여 AWS 위에 full-stack serverless application 을 만들어보려 합니다.
+본 워크샾에서는, [Amplify](https://docs.amplify.aws/), [Next.js](https://nextjs.org/), [GraphQL](https://graphql.org/) 을 이용하여 AWS 위에 full-stack serverless application 을 만들어보려 합니다.
 
 ### Overview
 
 [Create Next App](https://nextjs.org/docs/api-reference/create-next-app) 을 이용하여 새로운 next.js 프로젝트를 생성합니다. 그리고 [Amplify CLI](https://github.com/aws-amplify/amplify-cli) 를 이용하여 AWS Cloud 환경을 설정하고 [Amplify JS Libraries](https://github.com/aws-amplify/amplify-js) 를 이용하여 우리가 만든 next.js 앱을 AWS Cloud 와 연결해보려 합니다.
 
 이 앱은 우편번호 검색과 같은 매우 기본적인 검색 서비스입니다.
-검색 창이 있고, 회사이름, 사업자등록번호, 주소, 우편번호와 같은 정보를 입력하면 그에 매치되는 회사들의 목록을 보여줍니다.
+검색 창이 있고, 회사이름을 입력하면 그에 매치되는 회사들의 목록을 보여줍니다.
 
 본 워크샾은 2~5시간 정도 걸릴것으로 예상됩니다.
 
@@ -287,11 +287,13 @@ type Company @model {
   yyyymm: String!
   companyName: String!
   registrationNum: String!
-  industryName: String
   registered: Boolean!
   postalCode: String
   address: String
   streetAddress: String
+  companyType: String
+  industryCode: String
+  industryName: String
 }
 ```
 
@@ -389,7 +391,7 @@ File.readlines(input_filename).each do |line|
   industry_code = splits[13]
   industry_name = splits[14]
   h = { yyyymm: yyyymm,
-				companyName: company_name,
+        companyName: company_name,
 				registrationNum: registration_num,
         registered: registered,
 				postalCode: postal_code,
@@ -556,11 +558,13 @@ type Company @model @searchable {
   yyyymm: String!
   companyName: String!
   registrationNum: String!
-  industryName: String
   registered: Boolean!
   postalCode: String
   address: String
   streetAddress: String
+  companyType: String
+  industryCode: String
+  industryName: String
 }
 ```
 
@@ -906,6 +910,7 @@ function Company({ company }) {
     </div>
   );
 }
+
 function CompanyPage() {
   const router = useRouter();
   const { id } = router.query;

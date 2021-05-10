@@ -8,11 +8,13 @@ export const getCompany = /* GraphQL */ `
       yyyymm
       companyName
       registrationNum
-      industryName
       registered
       postalCode
       address
       streetAddress
+      companyType
+      industryCode
+      industryName
       createdAt
       updatedAt
     }
@@ -30,11 +32,13 @@ export const listCompanys = /* GraphQL */ `
         yyyymm
         companyName
         registrationNum
-        industryName
         registered
         postalCode
         address
         streetAddress
+        companyType
+        industryCode
+        industryName
         createdAt
         updatedAt
       }
@@ -62,11 +66,13 @@ export const searchCompanys = /* GraphQL */ `
         yyyymm
         companyName
         registrationNum
-        industryName
         registered
         postalCode
         address
         streetAddress
+        companyType
+        industryCode
+        industryName
         createdAt
         updatedAt
       }
