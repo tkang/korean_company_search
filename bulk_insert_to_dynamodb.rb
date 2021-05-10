@@ -6,7 +6,7 @@ require 'date'
 require 'securerandom'
 
 REGION = 'ap-northeast-2' # amplify 초기화한 region
-TABLE_NAME = 'your-dynamodb-tablename' # dynamodb 테이블이름 - AppSync console 에서 확인 가능합니다.
+TABLE_NAME = 'Company-ymydvzchqnb55g5g7kch22qzsi-dev' # dynamodb 테이블이름 - AppSync console 에서 확인 가능합니다.
 
 def create_batch_write_request(lines, table_name)
   {
@@ -16,10 +16,14 @@ def create_batch_write_request(lines, table_name)
   }
 end
 
+def get_id(company)
+  SecureRandom.uuid
+end
+
 def fix_company_data(company)
   addr = company["address"]
   str_addr = company["streetAddress"]
-  id = "#{company["registrationNum"]}##{company["companyName"]}"
+  id = get_id(company)
 	now = DateTime.now.iso8601(3)
   return company.merge("streetAddress" => str_addr.strip,
                         "address" => addr.strip,
@@ -28,7 +32,7 @@ def fix_company_data(company)
                         "id" => id)
 end
 
-# {"yyyymm":"2021-03","companyName":"세영세무법인","registrationNum":"215862","industryName":"기타 엔지니어링 서비스업","registered":true,"postalCode":"11757","address":"경기도 의정부시 금오동","streetAddress":"경기도 의정부시 청사로47번길","totalEmployeeCount":3,"newEmployeeCount":0,"quitEmployeeCount":0,"nationalPensionPaidTotal":505780,"nationalPensionPaidPerEmployee":168593,"registered_int":1,"avgMonthlySalary":1873255}
+# {"yyyymm":"2021-03","companyName":"(주)커민스제주","registrationNum":"616814","industryName":"BIZ_NO미존재사업장","registered":false,"postalCode":"63057","address":"제주특별자치도 제주시 애월읍","streetAddress":"제주특별자치도 제주시 애월읍 답동3길","addressCode":"5011025323","companyType":"1","industryCode":"999999"}
 def create_put_request(line)
   company = JSON.parse(line)
   company = fix_company_data(company)
