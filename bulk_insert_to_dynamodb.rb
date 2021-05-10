@@ -6,7 +6,7 @@ require 'date'
 require 'securerandom'
 
 REGION = 'ap-northeast-2' # amplify 초기화한 region
-TABLE_NAME = 'Company-ymydvzchqnb55g5g7kch22qzsi-dev' # dynamodb 테이블이름 - AppSync console 에서 확인 가능합니다.
+TABLE_NAME = 'your-dynamodb-tablename' # dynamodb 테이블이름 - AppSync console 에서 확인 가능합니다.
 
 def create_batch_write_request(lines, table_name)
   {
